@@ -27,7 +27,7 @@
     #menu .menu-help { margin:11px 2px 0; padding:8px 8px 5px; color:#315f3f; font-size:clamp(.72rem,3.3vw,.86rem); line-height:1.35; }
     #menu .version { position:absolute; right:20px; bottom:max(13px,env(safe-area-inset-bottom)); z-index:3; color:#4b7353; font-size:.58rem; font-weight:800; opacity:.72; pointer-events:none; }
     .sr-only { position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; border:0!important; }
-    .screen[hidden] { display:none; }
+    .screen[hidden],#menu[hidden],#finish[hidden] { display:none!important; }
     .panel { max-width:370px; }
     .broccoli-mark { display:block; font-size:3.8rem; line-height:.75; filter:drop-shadow(0 4px #f8dc8a); transform:rotate(-10deg); }
     h1 { margin:10px 0 4px; color:#34855b; font-size:clamp(3rem,13vw,4.4rem); line-height:.9; letter-spacing:-.09em; text-shadow:0 4px #fff9dd; }
@@ -54,7 +54,7 @@
     <div id="hud" hidden><span class="badge" id="seeds">✦ 0 / 20</span><span class="badge" id="zone">Blumenwiese</span></div>
     <div id="announcement" aria-live="polite"></div>
     <div id="touch" hidden aria-label="Touch-Steuerung"><div class="left-controls"><button class="touch-button" data-key="ArrowLeft" aria-label="Nach links">←</button><button class="touch-button" data-key="ArrowRight" aria-label="Nach rechts">→</button></div><button class="touch-button jump" data-key="Space" aria-label="Springen">Hüpf!<small>2× möglich</small></button></div>
-    <section class="screen" id="menu"><h1 class="sr-only">Brokis Welt</h1><div class="menu-sheet"><div class="menu-actions"><button id="start" type="button">Brokis Ausflug beginnen</button><button class="alt" id="music" type="button">♫ Menümusik starten</button></div><p class="menu-help">Handy: Pfeile und <b>Hüpf!</b><br>Computer: Pfeiltasten oder A / D; <b>Leertaste zweimal</b> für den Doppelsprung</p></div><span class="version">Version 5</span></section>
+    <section class="screen" id="menu"><h1 class="sr-only">Brokis Welt</h1><div class="menu-sheet"><div class="menu-actions"><button id="start" type="button">Brokis Ausflug beginnen</button><button class="alt" id="music" type="button">♫ Menümusik starten</button></div><p class="menu-help">Handy: Pfeile und <b>Hüpf!</b><br>Computer: Pfeiltasten oder A / D; <b>Leertaste zweimal</b> für den Doppelsprung</p></div><span class="version">Version 6</span></section>
     <section class="screen" id="finish" hidden><div class="panel"><span class="broccoli-mark">🌻</span><h2>Ein wunderbarer Ausflug!</h2><p id="finish-copy"></p><div class="actions"><button id="again">Noch einmal spielen</button><button class="alt" id="home">Zum Start</button></div></div></section>
   </main>
 <script>
