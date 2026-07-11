@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brokis Welt</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh; margin: 0; display: grid; place-items: center;
+      overflow: hidden; color: #31543b;
+      font-family: ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
+      background: radial-gradient(circle at 50% 0%, #fff9d9 0 18%, #c8ecda 62%, #acd5c2 100%);
+    }
+    #game-shell {
+      width: min(960px, 100vw); position: relative; overflow: hidden;
+      border: 8px solid #fff9e8; border-radius: 28px;
+      box-shadow: 0 20px 60px #35665055, inset 0 0 0 2px #8dca9e;
+      background: #c9f1ec;
+    }
+    canvas { display: block; width: 100%; height: auto; image-rendering: auto; }
+    .screen {
+      position: absolute; inset: 0; display: grid; place-items: center; padding: 28px;
+      text-align: center; background: linear-gradient(#dff8f6d9, #fff4d6c9);
+      transition: opacity .25s ease;
+    }
+    .screen[hidden] { display: none; }
+    .panel { max-width: 550px; }
+    h1 { margin: 0; color: #39865d; font-size: clamp(2.8rem, 8vw, 5.4rem); letter-spacing: -.08em; text-shadow: 0 4px #fdf4d8; }
+    .subtitle { margin: 10px 0 24px; color: #587353; font-size: clamp(1rem, 2.4vw, 1.35rem); line-height: 1.45; }
+    .buttons { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
+    button {
+      border: 0; border-bottom: 5px solid #2b885d; border-radius: 999px; padding: 13px 22px;
+      cursor: pointer; color: #fff; background: #51b879; font: inherit; font-weight: 800; font-size: 1.05rem;
+      box-shadow: 0 5px 0 #e4ffe5; transition: transform .1s ease, filter .1s ease;
+    }
+    button:hover { filter: brightness(1.07); transform: translateY(-2px); }
+    button:active { transform: translateY(3px); border-bottom-width: 2px; }
+    .small { background: #e9a94a; border-bottom-color: #bf7627; }
+    #hud {
+      position: absolute; inset: 16px 18px auto; display: flex; justify-content: space-between;
+      pointer-events: none; color: #30664a; font-size: clamp(.9rem, 2.2vw, 1.1rem); font-weight: 800;
+      text-shadow: 0 2px #fff8df;
+    }
+    #message { position: absolute; inset: 14% 10% auto; text-align: center; color: #356747; font-size: clamp(1.2rem, 3vw, 1.8rem); font-weight: 900; text-shadow: 0 3px #fff9e8; pointer-events: none; opacity: 0; transition: opacity .35s; }
+    #message.show { opacity: 1; }
+    #touch-controls { position: absolute; inset: auto 18px 16px; display: none; justify-content: space-between; pointer-events: none; }
+    .touch-side { display: flex; gap: 10px; }
+    .touch-button {
+      width: 58px; height: 58px; padding: 0; border: 3px solid #ffffffaa; border-bottom-width: 5px;
+      border-radius: 50%; background: #3f9e68dc; box-shadow: 0 3px 0 #286d4a, 0 3px 12px #2f654244;
+      color: #fff; font-size: 1.65rem; line-height: 1; touch-action: none; pointer-events: auto; user-select: none;
+    }
+    .touch-button.jump { width: 66px; height: 66px; background: #eda94fdf; border-bottom-color: #b97226; font-size: 1.35rem; }
+    .touch-button.pressed { transform: translateY(3px); border-bottom-width: 2px; }
+    .tip { margin: 20px 0 0; padding: 10px 16px; border-radius: 16px; background: #ffffffb8; color: #5c755e; font-size: .94rem; }
+    @media (pointer: coarse) { #touch-controls { display: flex; } }
+    @media (max-width: 600px) { #game-shell { border-width: 4px; border-radius: 16px; } #hud { inset: 10px 12px auto; } .touch-button { width: 52px; height: 52px; } .touch-button.jump { width: 60px; height: 60px; } }
+  </style>
+</head>
+<body>
+  <main id="game-shell" aria-label="Brokis Welt, ein kleines Jump-and-Run-Spiel">
+    <canvas id="game" width="960" height="540"></canvas>
+    <div id="hud" hidden><span id="score">Blüten: 0 / 8</span><span id="sound">♪ Klang an</span></div>
+    <div id="message" aria-live="polite"></div>
+    <div id="touch-controls" aria-label="Touch-Steuerung">
+      <div class="touch-side"><button class="touch-button" data-key="ArrowLeft" aria-label="Nach links">←</button><button class="touch-button" data-key="ArrowRight" aria-label="Nach rechts">→</button></div>
+      <button class="touch-button jump" data-key="Space" aria-label="Springen">Hüpf!</button>
+    </div>
+    <section class="screen" id="menu">
+      <div class="panel">
+        <h1>Brokis Welt</h1>
+        <p class="subtitle">Ein kleiner Ausflug durch die sanfte Brokkoli-Welt.<br>Hilf Broki, leuchtende Blüten zu sammeln.</p>
+        <div class="buttons"><button id="start">Los hüpfen</button><button class="small" id="toggle-sound">♪ Klang an</button></div>
+        <p class="tip">Bewegen: ← → oder A / D &nbsp;·&nbsp; Springen: Leertaste, W oder ↑</p>
+      </div>
+    </section>
+    <section class="screen" id="finish" hidden>
+      <div class="panel">
+        <h1>Wunderbar!</h1>
+        <p class="subtitle">Broki hat alle Blüten gefunden. Die Brokkoli-Welt strahlt wieder.</p>
+        <div class="buttons"><button id="again">Noch einmal</button><button class="small" id="back">Zum Menü</button></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const canvas = document.querySelector('#game');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const ui = {
+      menu: document.querySelector('#menu'), finish: document.querySelector('#finish'), hud: document.querySelector('#hud'),
+      score: document.querySelector('#score'), sound: document.querySelector('#sound'), message: document.querySelector('#message'), touch: document.querySelector('#touch-controls')
+    };
+    const keys = new Set();
+    let started = false, won = false, soundOn = true, audio, last = 0, collected = 0, messageTimer = 0;
+    let player, flowers;
+    const world = { ground: 475, camera: 0, width: 2520 };
+    const platforms = [
+      [0, 475, 405, 65], [500, 420, 190, 22], [760, 355, 170, 22], [1005, 422, 205, 22],
+      [1290, 350, 160, 22], [1515, 294, 160, 22], [1750, 385, 180, 22], [2020, 330, 190, 22], [2280, 430, 240, 45]
+    ];
+    const flowerSeeds = [[260, 422], [575, 367], [840, 302], [1090, 369], [1370, 297], [1590, 241], [1850, 332], [2110, 277]];
+
+    function reset() {
+      player = { x: 100, y: 350, w: 56, h: 72, vx: 0, vy: 0, grounded: false, face: 1, blink: 0, walk: 0 };
+      flowers = flowerSeeds.map(([x,y]) => ({x,y, got:false, bob:Math.random()*Math.PI*2}));
+      collected = 0; won = false; world.camera = 0; ui.score.textContent = 'Blüten: 0 / ' + flowers.length;
+    }
+    function tone(freq, time=.12, type='sine', gain=.08) {
+      if (!soundOn || !started) return;
+      try {
+        audio ||= new (window.AudioContext || window.webkitAudioContext)();
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = type; o.frequency.setValueAtTime(freq, audio.currentTime); g.gain.setValueAtTime(gain, audio.currentTime);
+        g.gain.exponentialRampToValueAtTime(.001, audio.currentTime + time); o.connect(g).connect(audio.destination); o.start(); o.stop(audio.currentTime + time);
+      } catch (_) {}
+    }
+    function showMessage(text) { ui.message.textContent = text; ui.message.classList.add('show'); messageTimer = 1.5; }
+    function rectHit(a,b) { return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y; }
+    function update(dt) {
+      if (!started || won) return;
+      const left = keys.has('ArrowLeft') || keys.has('KeyA');
+      const right = keys.has('ArrowRight') || keys.has('KeyD');
+      const jump = keys.has('Space') || keys.has('ArrowUp') || keys.has('KeyW');
+      const speed = 275;
+      if (left) { player.vx = -speed; player.face = -1; }
+      else if (right) { player.vx = speed; player.face = 1; }
+      else player.vx *= Math.pow(.0002, dt);
+      if (jump && player.grounded) { player.vy = -575; player.grounded = false; tone(380,.14,'triangle'); }
+      player.vy += 1450 * dt;
+      player.x += player.vx * dt;
+      player.x = Math.max(0, Math.min(world.width-player.w, player.x));
+      const oldY = player.y; player.y += player.vy * dt; player.grounded = false;
+      for (const [x,y,w,h] of platforms) {
+        if (player.x + player.w > x && player.x < x+w && player.vy >= 0 && oldY + player.h <= y+8 && player.y+player.h >= y) {
+          player.y = y-player.h; player.vy = 0; player.grounded = true;
+        }
+      }
+      if (player.y > H + 100) { player.x = Math.max(30, player.x-120); player.y = 120; player.vy = 0; tone(160,.22,'sine'); showMessage('Broki landet weich im Moos!'); }
+      for (const f of flowers) {
+        if (!f.got && rectHit(player, {x:f.x-14,y:f.y-14,w:28,h:28})) { f.got = true; collected++; ui.score.textContent = `Blüten: ${collected} / ${flowers.length}`; tone(680,.11,'sine'); setTimeout(() => tone(920,.13,'sine'), 70); }
+      }
+      if (collected === flowers.length) { won = true; tone(523,.16,'triangle'); setTimeout(()=>tone(659,.18,'triangle'), 150); setTimeout(()=>tone(784,.3,'triangle'), 310); setTimeout(()=>{ui.finish.hidden=false;}, 650); }
+      const target = Math.max(0, Math.min(world.width-W, player.x-W*.36)); world.camera += (target-world.camera) * Math.min(1, dt*4);
+      player.walk += Math.abs(player.vx)*dt*.04; player.blink += dt;
+      if (messageTimer > 0) { messageTimer -= dt; if (messageTimer <= 0) ui.message.classList.remove('show'); }
+    }
+    function cloud(x,y,s) { ctx.fillStyle = '#ffffffbb'; ctx.beginPath(); ctx.arc(x,y,s*.26,0,7); ctx.arc(x+s*.28,y-s*.12,s*.36,0,7); ctx.arc(x+s*.65,y,s*.28,0,7); ctx.arc(x+s*.35,y+s*.18,s*.32,0,7); ctx.fill(); }
+    function broccoli(x,y,s=1,far=false) {
+      ctx.save(); ctx.translate(x,y); ctx.scale(s,s); ctx.fillStyle = far ? '#78bd88' : '#62ad71';
+      for (const [a,b,r] of [[0,-24,23],[-22,-12,19],[22,-12,19],[-13,7,24],[14,7,24],[0,4,26]]) { ctx.beginPath(); ctx.arc(a,b,r,0,7); ctx.fill(); }
+      ctx.fillStyle = far ? '#a6d8a5' : '#e6d99d'; ctx.beginPath(); ctx.roundRect(-19,8,38,56,16); ctx.fill(); ctx.restore();
+    }
+    function drawFlower(f,time) {
+      if (f.got) return; const x=f.x-world.camera, y=f.y+Math.sin(time*2+f.bob)*5;
+      ctx.save(); ctx.translate(x,y); ctx.rotate(time*1.5); for(let i=0;i<6;i++){ctx.rotate(Math.PI/3); ctx.fillStyle='#ff9eb4';ctx.beginPath();ctx.ellipse(0,-10,6,11,0,0,7);ctx.fill();} ctx.fillStyle='#ffdf59';ctx.beginPath();ctx.arc(0,0,7,0,7);ctx.fill();ctx.restore();
+    }
+    function drawPlatform(x,y,w,h) {
+      x -= world.camera; if (x+w < -40 || x>W+40) return;
+      ctx.fillStyle='#9a6946'; ctx.beginPath();ctx.roundRect(x,y,w,h,9);ctx.fill(); ctx.fillStyle='#70be77';ctx.beginPath();ctx.roundRect(x,y-7,w,16,9);ctx.fill();
+      ctx.fillStyle='#93d88a'; for(let i=10;i<w;i+=28){ctx.beginPath();ctx.arc(x+i,y-6,6,Math.PI,0);ctx.fill();}
+    }
+    function drawBroki() {
+      const p=player, x=p.x-world.camera+p.w/2, y=p.y+p.h/2; const walking=Math.sin(p.walk)*3; const blink=(p.blink%4)<.12;
+      ctx.save(); ctx.translate(x,y); ctx.scale(p.face,1);
+      // shadow and little legs
+      ctx.fillStyle='#55725030';ctx.beginPath();ctx.ellipse(0,38,26,7,0,0,7);ctx.fill();
+      ctx.fillStyle='#f4dfad';ctx.beginPath();ctx.roundRect(-22,-8,44,48,19);ctx.fill();
+      // arms: raised, friendly like the plushie
+      ctx.strokeStyle='#f4dfad';ctx.lineWidth=14;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-17,8);ctx.lineTo(-35,-3+walking);ctx.moveTo(17,8);ctx.lineTo(35,-3-walking);ctx.stroke();
+      // broccoli crown
+      ctx.fillStyle='#4e9b63'; for (const [a,b,r] of [[0,-42,19],[-18,-31,18],[18,-31,18],[-25,-14,17],[25,-14,17],[-10,-14,22],[10,-14,22],[0,-20,22]]) {ctx.beginPath();ctx.arc(a,b,r,0,7);ctx.fill();}
+      ctx.fillStyle='#66b875'; for (const [a,b,r] of [[0,-45,14],[-17,-34,13],[17,-34,13],[-23,-17,12],[23,-17,12],[-8,-19,15],[9,-19,15]]) {ctx.beginPath();ctx.arc(a,b,r,0,7);ctx.fill();}
+      // face
+      ctx.fillStyle='#273b30'; if(blink){ctx.fillRect(-11,8,7,2);ctx.fillRect(7,8,7,2);}else{ctx.beginPath();ctx.ellipse(-8,8,4,6,0,0,7);ctx.ellipse(10,8,4,6,0,0,7);ctx.fill();}
+      ctx.fillStyle='#f39aae';ctx.beginPath();ctx.arc(-16,18,4,0,7);ctx.arc(18,18,4,0,7);ctx.fill();
+      ctx.strokeStyle='#273b30';ctx.lineWidth=3;ctx.beginPath();ctx.arc(1,17,7,0.15,2.95);ctx.stroke(); ctx.restore();
+    }
+    function draw(time) {
+      ctx.clearRect(0,0,W,H);
+      const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#a9e7ed');g.addColorStop(.62,'#dcf8db');g.addColorStop(1,'#bde0a7');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+      cloud(170-world.camera*.12,84,80);cloud(610-world.camera*.1,116,65);cloud(990-world.camera*.15,58,90);
+      ctx.fillStyle='#9ed69c';ctx.beginPath();ctx.moveTo(0,365);for(let x=0;x<=W+80;x+=80){ctx.quadraticCurveTo(x+40,320+(x%160),x+80,360);}ctx.lineTo(W,540);ctx.lineTo(0,540);ctx.fill();
+      for(let i=0;i<8;i++) broccoli(i*280-world.camera*.25+60,390+(i%2)*9,.75,true);
+      for(const p of platforms) drawPlatform(...p);
+      for(const f of flowers) drawFlower(f,time);
+      drawBroki();
+      if (!started) { ctx.fillStyle='#ffffff66';ctx.fillRect(0,0,W,H); }
+    }
+    function loop(now) { const dt=Math.min(.033,(now-last)/1000||0);last=now;update(dt);draw(now/1000);requestAnimationFrame(loop); }
+    function startGame() { reset(); started=true; ui.menu.hidden=true;ui.finish.hidden=true;ui.hud.hidden=false; tone(440,.1,'sine'); }
+    function endToMenu() { started=false; ui.finish.hidden=true;ui.menu.hidden=false;ui.hud.hidden=true; keys.clear(); }
+    document.querySelector('#start').addEventListener('click',startGame);document.querySelector('#again').addEventListener('click',startGame);document.querySelector('#back').addEventListener('click',endToMenu);
+    document.querySelector('#toggle-sound').addEventListener('click',toggleSound);
+    function toggleSound(){soundOn=!soundOn;const text=soundOn?'♪ Klang an':'♪ Klang aus';document.querySelector('#toggle-sound').textContent=text;ui.sound.textContent=text;}
+    addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','Space'].includes(e.code))e.preventDefault();keys.add(e.code);});addEventListener('keyup',e=>keys.delete(e.code));
+    document.querySelectorAll('[data-key]').forEach(button => {
+      const key = button.dataset.key;
+      const press = event => { event.preventDefault(); keys.add(key); button.classList.add('pressed'); };
+      const release = event => { event.preventDefault(); keys.delete(key); button.classList.remove('pressed'); };
+      button.addEventListener('pointerdown', press);
+      button.addEventListener('pointerup', release);
+      button.addEventListener('pointercancel', release);
+      button.addEventListener('pointerleave', release);
+    });
+    reset();requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
